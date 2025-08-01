@@ -5,7 +5,6 @@
 export interface Machine {
   id: number;
   name: string;
-  status: 'available' | 'in-use';
   timerEndTime?: number; // Unix timestamp
   createdAt: number;
   updatedAt: number;
@@ -48,7 +47,6 @@ export interface ApiErrorResponse {
 export interface MachineRow {
   id: number;
   name: string;
-  status: 'available' | 'in-use';
   timer_end_time: number | null;
   created_at: number;
   updated_at: number;

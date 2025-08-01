@@ -1,15 +1,16 @@
-import { MachineStatus, GetMachinesResponse, StatusUpdateEvent } from './types.js';
+import { MachineStatus, GetMachinesResponse } from './types.js';
 
 /**
  * MachineList component handles displaying machines and their status
- * Implements real-time status updates using Server-Sent Events
+ * Implements real-time status updates using polling with smooth countdown timers
  */
 export class MachineList {
   private container: HTMLElement;
   private errorContainer: HTMLElement;
-  private eventSource: EventSource | null = null;
   private machines: MachineStatus[] = [];
   private updateInterval: number | null = null;
+  private countdownInterval: number | null = null;
+  private lastFetchTime: number = 0;
 
   constructor(containerId: string) {
     const container = document.getElementById(containerId);
@@ -33,6 +34,7 @@ export class MachineList {
       this.hideError();
       await this.loadMachines();
       this.setupRealTimeUpdates();
+      this.startCountdownTimer();
       this.render();
     } catch (error) {
       console.error('Failed to initialize machine list:', error);
@@ -70,6 +72,7 @@ export class MachineList {
       }
       
       this.machines = data.machines;
+      this.lastFetchTime = Date.now(); // Track when we fetched the data
     } catch (error) {
       console.error('Error loading machines:', error);
       
@@ -83,36 +86,10 @@ export class MachineList {
   }
 
   /**
-   * Set up real-time updates using Server-Sent Events with fallback to polling
+   * Set up real-time updates using polling
    */
   private setupRealTimeUpdates(): void {
-    // Try to establish SSE connection
-    try {
-      this.eventSource = new EventSource('/api/machines/status');
-      
-      this.eventSource.onmessage = (event) => {
-        try {
-          const updateEvent: StatusUpdateEvent = JSON.parse(event.data);
-          this.handleStatusUpdate(updateEvent);
-        } catch (error) {
-          console.error('Error parsing SSE message:', error);
-        }
-      };
-
-      this.eventSource.onerror = (error) => {
-        console.warn('SSE connection error, falling back to polling:', error);
-        this.eventSource?.close();
-        this.eventSource = null;
-        this.setupPolling();
-      };
-
-      this.eventSource.onopen = () => {
-        console.log('SSE connection established');
-      };
-    } catch (error) {
-      console.warn('SSE not supported, using polling:', error);
-      this.setupPolling();
-    }
+    this.setupPolling();
   }
 
   /**
@@ -124,7 +101,7 @@ export class MachineList {
       clearInterval(this.updateInterval);
     }
 
-    // Poll every 10 seconds
+    // Poll every 3 seconds for responsive updates
     this.updateInterval = window.setInterval(async () => {
       try {
         await this.loadMachines();
@@ -135,33 +112,73 @@ export class MachineList {
         const errorMessage = error instanceof Error ? error.message : 'Failed to update machine status';
         this.showError(`Connection lost: ${errorMessage}`);
       }
-    }, 10000);
+    }, 3000);
   }
 
   /**
-   * Handle status update from SSE
+   * Start the smooth countdown timer that updates every second
    */
-  private handleStatusUpdate(updateEvent: StatusUpdateEvent): void {
-    const machineIndex = this.machines.findIndex(m => m.id === updateEvent.machineId);
-    if (machineIndex !== -1) {
-      this.machines[machineIndex] = updateEvent.machine;
-      this.render();
+  private startCountdownTimer(): void {
+    // Clear any existing countdown interval
+    if (this.countdownInterval) {
+      clearInterval(this.countdownInterval);
     }
+
+    // Update countdown every second for smooth display
+    this.countdownInterval = window.setInterval(() => {
+      this.updateCountdowns();
+    }, 1000);
   }
 
   /**
-   * Format remaining time for display
+   * Update countdown displays without re-rendering the entire list
+   */
+  private updateCountdowns(): void {
+    const timerElements = this.container.querySelectorAll('.timer-remaining');
+    const now = Date.now();
+    const timeSinceLastFetch = now - this.lastFetchTime;
+    
+    timerElements.forEach((element) => {
+      // Get the machine ID from the parent card
+      const machineCard = element.closest('.machine-card');
+      if (!machineCard) return;
+      
+      // Find the corresponding machine by matching the card content
+      const machineNameElement = machineCard.querySelector('.machine-name');
+      if (!machineNameElement) return;
+      
+      const machineName = machineNameElement.textContent;
+      const machine = this.machines.find(m => m.name === machineName && m.status === 'in-use' && m.remainingTimeMs);
+      
+      if (machine && machine.remainingTimeMs) {
+        // Calculate current remaining time based on when we last fetched the data
+        const currentRemainingTime = Math.max(0, machine.remainingTimeMs - timeSinceLastFetch);
+        
+        element.textContent = this.formatRemainingTime(currentRemainingTime);
+        
+        // If timer expired, trigger a refresh to update the status
+        if (currentRemainingTime <= 0) {
+          this.loadMachines().then(() => this.render()).catch(console.error);
+        }
+      }
+    });
+  }
+
+
+
+  /**
+   * Format remaining time as countdown (MM:SS)
    */
   private formatRemainingTime(remainingTimeMs: number): string {
-    const totalMinutes = Math.ceil(remainingTimeMs / (1000 * 60));
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
+    const totalSeconds = Math.max(0, Math.floor(remainingTimeMs / 1000));
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
 
-    if (hours > 0) {
-      return `${hours}h ${minutes}m remaining`;
-    } else {
-      return `${minutes}m remaining`;
-    }
+    // Format as MM:SS with leading zeros
+    const formattedMinutes = minutes.toString().padStart(2, '0');
+    const formattedSeconds = seconds.toString().padStart(2, '0');
+
+    return `${formattedMinutes}:${formattedSeconds}`;
   }
 
   /**
@@ -233,14 +250,14 @@ export class MachineList {
    * Clean up resources
    */
   destroy(): void {
-    if (this.eventSource) {
-      this.eventSource.close();
-      this.eventSource = null;
-    }
-    
     if (this.updateInterval) {
       clearInterval(this.updateInterval);
       this.updateInterval = null;
+    }
+    
+    if (this.countdownInterval) {
+      clearInterval(this.countdownInterval);
+      this.countdownInterval = null;
     }
   }
 }

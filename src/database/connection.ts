@@ -1,14 +1,10 @@
-import sqlite3 from 'sqlite3';
-import { promisify } from 'util';
+import { createClient, Client } from '@libsql/client';
 import path from 'path';
 import fs from 'fs';
 
-// Enable verbose mode for better debugging
-const sqlite = sqlite3.verbose();
-
 export interface DatabaseConnection {
-  db: sqlite3.Database;
-  run: (sql: string, params?: any[]) => Promise<sqlite3.RunResult>;
+  client: Client;
+  run: (sql: string, params?: any[]) => Promise<{ lastInsertRowid: number; changes: number }>;
   get: <T = any>(sql: string, params?: any[]) => Promise<T | undefined>;
   all: <T = any>(sql: string, params?: any[]) => Promise<T[]>;
   close: () => Promise<void>;
@@ -22,9 +18,25 @@ class DatabaseManager {
     // Constructor is now empty - path is determined dynamically
   }
 
-  private get dbPath(): string {
-    // Use environment variable or default to local SQLite file
-    return process.env.DATABASE_PATH || path.join(process.cwd(), 'data', 'laundry.db');
+  private get dbConfig() {
+    const databasePath = process.env.DATABASE_PATH || path.join(process.cwd(), 'data', 'laundry.db');
+    const authToken = process.env.DATABASE_AUTH_TOKEN;
+
+    // Check if it's a Turso URL (starts with libsql://)
+    if (databasePath.startsWith('libsql://')) {
+      if (!authToken) {
+        throw new Error('DATABASE_AUTH_TOKEN is required for Turso connections');
+      }
+      return {
+        url: databasePath,
+        authToken: authToken
+      };
+    }
+
+    // Local SQLite file
+    return {
+      url: `file:${databasePath}`
+    };
   }
 
   public static getInstance(): DatabaseManager {
@@ -51,103 +63,97 @@ class DatabaseManager {
 
     while (retryCount < maxRetries) {
       try {
-        // Ensure data directory exists
-        const dataDir = path.dirname(this.dbPath);
-        if (!fs.existsSync(dataDir)) {
-          try {
-            fs.mkdirSync(dataDir, { recursive: true });
-            console.log(`Created data directory: ${dataDir}`);
-          } catch (dirError) {
-            throw new Error(`Failed to create data directory ${dataDir}: ${dirError instanceof Error ? dirError.message : 'Unknown error'}`);
+        const config = this.dbConfig;
+        
+        // For local SQLite files, ensure directory exists
+        if (config.url.startsWith('file:')) {
+          const filePath = config.url.replace('file:', '');
+          const dataDir = path.dirname(filePath);
+          if (!fs.existsSync(dataDir)) {
+            try {
+              fs.mkdirSync(dataDir, { recursive: true });
+              console.log(`Created data directory: ${dataDir}`);
+            } catch (dirError) {
+              throw new Error(`Failed to create data directory ${dataDir}: ${dirError instanceof Error ? dirError.message : 'Unknown error'}`);
+            }
           }
         }
 
-        // Check if we have write permissions to the data directory
-        try {
-          fs.accessSync(dataDir, fs.constants.W_OK);
-        } catch (permError) {
-          throw new Error(`No write permission for data directory ${dataDir}`);
-        }
-
-        const db = await new Promise<sqlite3.Database>((resolve, reject) => {
-          const database = new sqlite.Database(this.dbPath, (err) => {
-            if (err) {
-              console.error(`Error opening database (attempt ${retryCount + 1}/${maxRetries}):`, err.message);
-              reject(new Error(`Database connection failed: ${err.message}`));
-            } else {
-              console.log('Connected to SQLite database at:', this.dbPath);
-              resolve(database);
-            }
-          });
-        });
+        // Create libsql client
+        const client = createClient(config);
 
         // Test the connection with a simple query
-        await this.runQuery(db, 'SELECT 1');
+        await client.execute('SELECT 1');
 
-        // Enable foreign key constraints
-        await this.runQuery(db, 'PRAGMA foreign_keys = ON');
+        // Enable foreign key constraints and set pragmas
+        await client.execute('PRAGMA foreign_keys = ON');
         
-        // Set WAL mode for better concurrent access
-        await this.runQuery(db, 'PRAGMA journal_mode = WAL');
+        // For local SQLite, set WAL mode and timeout
+        if (config.url.startsWith('file:')) {
+          await client.execute('PRAGMA journal_mode = WAL');
+          await client.execute('PRAGMA busy_timeout = 30000');
+        }
 
-        // Set reasonable timeout for busy database
-        await this.runQuery(db, 'PRAGMA busy_timeout = 30000');
-
-        // Create promisified methods for easier async/await usage
+        // Create connection wrapper with consistent interface
         const connection: DatabaseConnection = {
-          db,
-          run: (sql: string, params?: any[]) => {
-            return new Promise((resolve, reject) => {
-              db.run(sql, params || [], function(err) {
-                if (err) {
-                  console.error('Database run error:', err.message);
-                  reject(new Error(`Database operation failed: ${err.message}`));
-                } else {
-                  resolve(this);
-                }
+          client,
+          run: async (sql: string, params?: any[]) => {
+            try {
+              const result = await client.execute({
+                sql,
+                args: params || []
               });
-            });
+              return {
+                lastInsertRowid: Number(result.lastInsertRowid || 0),
+                changes: result.rowsAffected
+              };
+            } catch (error) {
+              console.error('Database run error:', error instanceof Error ? error.message : 'Unknown error');
+              throw new Error(`Database operation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            }
           },
-          get: <T = any>(sql: string, params?: any[]) => {
-            return new Promise<T | undefined>((resolve, reject) => {
-              db.get(sql, params || [], (err, row) => {
-                if (err) {
-                  console.error('Database get error:', err.message);
-                  reject(new Error(`Database query failed: ${err.message}`));
-                } else {
-                  resolve(row as T | undefined);
-                }
+          get: async <T = any>(sql: string, params?: any[]): Promise<T | undefined> => {
+            try {
+              const result = await client.execute({
+                sql,
+                args: params || []
               });
-            });
+              return result.rows[0] as T | undefined;
+            } catch (error) {
+              console.error('Database get error:', error instanceof Error ? error.message : 'Unknown error');
+              throw new Error(`Database query failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            }
           },
-          all: <T = any>(sql: string, params?: any[]) => {
-            return new Promise<T[]>((resolve, reject) => {
-              db.all(sql, params || [], (err, rows) => {
-                if (err) {
-                  console.error('Database all error:', err.message);
-                  reject(new Error(`Database query failed: ${err.message}`));
-                } else {
-                  resolve((rows || []) as T[]);
-                }
+          all: async <T = any>(sql: string, params?: any[]): Promise<T[]> => {
+            try {
+              const result = await client.execute({
+                sql,
+                args: params || []
               });
-            });
+              return result.rows as T[];
+            } catch (error) {
+              console.error('Database all error:', error instanceof Error ? error.message : 'Unknown error');
+              throw new Error(`Database query failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            }
           },
-          close: () => {
-            return new Promise((resolve, reject) => {
-              db.close((err) => {
-                if (err) {
-                  console.error('Database close error:', err.message);
-                  reject(new Error(`Failed to close database: ${err.message}`));
-                } else {
-                  resolve();
-                }
-              });
-            });
+          close: async () => {
+            try {
+              client.close();
+            } catch (error) {
+              console.error('Database close error:', error instanceof Error ? error.message : 'Unknown error');
+              throw new Error(`Failed to close database: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            }
           }
         };
 
         this.connection = connection;
-        console.log('✓ Database connection established successfully');
+        
+        if (config.url.startsWith('libsql://')) {
+          console.log('✓ Connected to Turso database successfully');
+        } else {
+          console.log('✓ Connected to local SQLite database successfully');
+        }
+        
         return connection;
 
       } catch (error) {
@@ -190,17 +196,7 @@ class DatabaseManager {
     return this.connection;
   }
 
-  private runQuery(db: sqlite3.Database, sql: string, params: any[] = []): Promise<sqlite3.RunResult> {
-    return new Promise((resolve, reject) => {
-      db.run(sql, params, function(err) {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(this);
-        }
-      });
-    });
-  }
+
 }
 
 // Export singleton instance and class for testing

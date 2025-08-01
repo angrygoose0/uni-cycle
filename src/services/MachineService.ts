@@ -33,7 +33,7 @@ export class MachineService {
   async getMachineById(id: number): Promise<MachineStatus | null> {
     try {
       this.validateMachineId(id);
-      
+
       const machine = await this.machineRepository.findById(id);
       return machine ? machine.toStatus() : null;
     } catch (error) {
@@ -90,35 +90,7 @@ export class MachineService {
     }
   }
 
-  /**
-   * Update machine status
-   */
-  async updateMachineStatus(machineId: number, status: 'available' | 'in-use', timerEndTime?: number): Promise<MachineStatus> {
-    try {
-      this.validateMachineId(machineId);
-      this.validateMachineStatus(status);
 
-      // Validate status consistency
-      if (status === 'in-use' && !timerEndTime) {
-        throw new Error('Timer end time is required when setting machine to in-use');
-      }
-      if (status === 'available' && timerEndTime) {
-        throw new Error('Timer end time should not be provided when setting machine to available');
-      }
-
-      // Check if machine exists
-      const existingMachine = await this.machineRepository.findById(machineId);
-      if (!existingMachine) {
-        throw new Error(`Machine with ID ${machineId} not found`);
-      }
-
-      // Update the status
-      const updatedMachine = await this.machineRepository.updateStatus(machineId, status, timerEndTime);
-      return updatedMachine.toStatus();
-    } catch (error) {
-      throw new Error(`Failed to update machine status: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  }
 
   /**
    * Get machines that are currently available
@@ -147,46 +119,7 @@ export class MachineService {
     }
   }
 
-  /**
-   * Get machines with expired timers
-   */
-  async getMachinesWithExpiredTimers(): Promise<MachineStatus[]> {
-    try {
-      const expiredMachines = await this.machineRepository.findWithExpiredTimers();
-      return expiredMachines.map(machine => machine.toStatus());
-    } catch (error) {
-      throw new Error(`Failed to retrieve machines with expired timers: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  }
 
-  /**
-   * Process expired timers and make machines available
-   */
-  async processExpiredTimers(): Promise<number> {
-    try {
-      const expiredMachines = await this.machineRepository.findWithExpiredTimers();
-      let processedCount = 0;
-
-      this.logger.info('Processing expired timers', { expiredCount: expiredMachines.length });
-
-      for (const machine of expiredMachines) {
-        try {
-          await this.machineRepository.clearTimer(machine.id);
-          processedCount++;
-          this.logger.info('Cleared expired timer', { machineId: machine.id, machineName: machine.name });
-        } catch (error) {
-          // Log error but continue processing other machines
-          this.logger.error('Failed to clear timer for machine', error instanceof Error ? error : new Error(String(error)), { machineId: machine.id, machineName: machine.name });
-        }
-      }
-
-      this.logger.info('Finished processing expired timers', { processedCount, totalExpired: expiredMachines.length });
-      return processedCount;
-    } catch (error) {
-      this.logger.error('Failed to process expired timers', error instanceof Error ? error : new Error(String(error)));
-      throw new Error(`Failed to process expired timers: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  }
 
   /**
    * Check if a machine is available for use

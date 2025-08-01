@@ -5,6 +5,7 @@ import { createLogger } from '../utils/logger';
 
 /**
  * Repository class for machine data access operations
+ * Status is calculated based on timer_end_time vs current time
  */
 export class MachineRepository {
   private db: DatabaseConnection | null = null;
@@ -58,26 +59,14 @@ export class MachineRepository {
   }
 
   /**
-   * Find all machines with active timers
+   * Find all machines with active timers (timer_end_time > current time)
    */
   async findWithActiveTimers(): Promise<Machine[]> {
     const db = await this.getDb();
-    const rows = await db.all<MachineRow>(
-      'SELECT * FROM machines WHERE status = ? AND timer_end_time IS NOT NULL ORDER BY timer_end_time',
-      ['in-use']
-    );
-    return rows.map(row => Machine.fromRow(row));
-  }
-
-  /**
-   * Find machines with expired timers
-   */
-  async findWithExpiredTimers(): Promise<Machine[]> {
-    const db = await this.getDb();
     const now = Math.floor(Date.now() / 1000);
     const rows = await db.all<MachineRow>(
-      'SELECT * FROM machines WHERE status = ? AND timer_end_time IS NOT NULL AND timer_end_time <= ?',
-      ['in-use', now]
+      'SELECT * FROM machines WHERE timer_end_time IS NOT NULL AND timer_end_time > ? ORDER BY timer_end_time',
+      [now]
     );
     return rows.map(row => Machine.fromRow(row));
   }
@@ -90,22 +79,21 @@ export class MachineRepository {
     const now = Math.floor(Date.now() / 1000);
     
     const result = await db.run(
-      `INSERT INTO machines (name, status, timer_end_time, created_at, updated_at) 
-       VALUES (?, ?, ?, ?, ?)`,
+      `INSERT INTO machines (name, timer_end_time, created_at, updated_at) 
+       VALUES (?, ?, ?, ?)`,
       [
         machine.name,
-        machine.status,
         machine.timerEndTime || null,
         machine.createdAt || now,
         machine.updatedAt || now
       ]
     );
 
-    if (!result.lastID) {
+    if (!result.lastInsertRowid) {
       throw new Error('Failed to create machine');
     }
 
-    const created = await this.findById(result.lastID);
+    const created = await this.findById(result.lastInsertRowid);
     if (!created) {
       throw new Error('Failed to retrieve created machine');
     }
@@ -122,11 +110,10 @@ export class MachineRepository {
     
     const result = await db.run(
       `UPDATE machines 
-       SET name = ?, status = ?, timer_end_time = ?, updated_at = ?
+       SET name = ?, timer_end_time = ?, updated_at = ?
        WHERE id = ?`,
       [
         machine.name,
-        machine.status,
         machine.timerEndTime || null,
         now,
         machine.id
@@ -158,40 +145,15 @@ export class MachineRepository {
    * Set timer for a machine
    */
   async setTimer(machineId: number, durationMinutes: number): Promise<Machine> {
-    const machine = await this.findById(machineId);
-    if (!machine) {
-      throw new Error(`Machine with id ${machineId} not found`);
-    }
-
-    machine.setTimer(durationMinutes);
-    return await this.update(machine);
-  }
-
-  /**
-   * Clear timer for a machine (make it available)
-   */
-  async clearTimer(machineId: number): Promise<Machine> {
-    const machine = await this.findById(machineId);
-    if (!machine) {
-      throw new Error(`Machine with id ${machineId} not found`);
-    }
-
-    machine.clearTimer();
-    return await this.update(machine);
-  }
-
-  /**
-   * Update machine status
-   */
-  async updateStatus(machineId: number, status: 'available' | 'in-use', timerEndTime?: number): Promise<Machine> {
     const db = await this.getDb();
     const now = Math.floor(Date.now() / 1000);
+    const timerEndTime = now + (durationMinutes * 60);
     
     const result = await db.run(
       `UPDATE machines 
-       SET status = ?, timer_end_time = ?, updated_at = ?
+       SET timer_end_time = ?, updated_at = ?
        WHERE id = ?`,
-      [status, timerEndTime || null, now, machineId]
+      [timerEndTime, now, machineId]
     );
 
     if (result.changes === 0) {
@@ -207,32 +169,43 @@ export class MachineRepository {
   }
 
   /**
-   * Bulk update expired timers to available status
+   * Clear timer for a machine (make it available)
    */
-  async clearExpiredTimers(): Promise<number> {
+  async clearTimer(machineId: number): Promise<Machine> {
     const db = await this.getDb();
     const now = Math.floor(Date.now() / 1000);
     
     const result = await db.run(
       `UPDATE machines 
-       SET status = 'available', timer_end_time = NULL, updated_at = ?
-       WHERE status = 'in-use' AND timer_end_time IS NOT NULL AND timer_end_time <= ?`,
-      [now, now]
+       SET timer_end_time = NULL, updated_at = ?
+       WHERE id = ?`,
+      [now, machineId]
     );
 
-    return result.changes || 0;
+    if (result.changes === 0) {
+      throw new Error(`Machine with id ${machineId} not found`);
+    }
+
+    const updated = await this.findById(machineId);
+    if (!updated) {
+      throw new Error('Failed to retrieve updated machine');
+    }
+
+    return updated;
   }
 
   /**
-   * Get count of machines by status
+   * Get count of machines by status (calculated based on timer_end_time)
    */
   async getCountByStatus(): Promise<{ available: number; inUse: number }> {
     const db = await this.getDb();
+    const now = Math.floor(Date.now() / 1000);
     const result = await db.get<{ available: number; in_use: number }>(
       `SELECT 
-         SUM(CASE WHEN status = 'available' THEN 1 ELSE 0 END) as available,
-         SUM(CASE WHEN status = 'in-use' THEN 1 ELSE 0 END) as in_use
-       FROM machines`
+         SUM(CASE WHEN timer_end_time IS NULL OR timer_end_time <= ? THEN 1 ELSE 0 END) as available,
+         SUM(CASE WHEN timer_end_time IS NOT NULL AND timer_end_time > ? THEN 1 ELSE 0 END) as in_use
+       FROM machines`,
+      [now, now]
     );
 
     return {

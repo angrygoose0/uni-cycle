@@ -4,13 +4,12 @@ import { MachineStatus } from '../types';
 import { createLogger } from '../utils/logger';
 
 /**
- * Timer management system for handling machine timers
+ * Simplified timer management system
+ * Status is calculated dynamically based on timer_end_time vs current time
  */
 export class TimerManager {
   private machineService: MachineService;
   private statusBroadcastService: StatusBroadcastService | null = null;
-  private intervalId: NodeJS.Timeout | null = null;
-  private isRunning: boolean = false;
   private logger = createLogger('TimerManager');
 
   constructor(machineService?: MachineService, statusBroadcastService?: StatusBroadcastService) {
@@ -19,47 +18,16 @@ export class TimerManager {
   }
 
   /**
-   * Start the timer management system with automatic cleanup
+   * Start the timer management system (simplified - no background processing needed)
    */
   start(intervalMs: number = 30000): void {
-    if (this.isRunning) {
-      this.logger.warn('TimerManager is already running');
-      return;
-    }
-
-    this.isRunning = true;
-    this.logger.info(`Starting TimerManager with ${intervalMs}ms interval`);
-
-    // Process expired timers immediately
-    this.processExpiredTimers().catch(error => {
-      this.logger.error('Error during initial timer processing', error instanceof Error ? error : new Error(String(error)));
-    });
-
-    // Set up periodic processing
-    this.intervalId = setInterval(async () => {
-      try {
-        await this.processExpiredTimers();
-      } catch (error) {
-        this.logger.error('Error processing expired timers', error instanceof Error ? error : new Error(String(error)));
-      }
-    }, intervalMs);
+    this.logger.info('TimerManager started (simplified mode - status calculated dynamically)');
   }
 
   /**
    * Stop the timer management system
    */
   stop(): void {
-    if (!this.isRunning) {
-      this.logger.warn('TimerManager is not running');
-      return;
-    }
-
-    if (this.intervalId) {
-      clearInterval(this.intervalId);
-      this.intervalId = null;
-    }
-
-    this.isRunning = false;
     this.logger.info('TimerManager stopped');
   }
 
@@ -67,39 +35,7 @@ export class TimerManager {
    * Check if the timer manager is currently running
    */
   isActive(): boolean {
-    return this.isRunning;
-  }
-
-  /**
-   * Process all expired timers and make machines available
-   */
-  async processExpiredTimers(): Promise<number> {
-    try {
-      // Get machines with expired timers before processing
-      const expiredMachines = await this.machineService.getMachinesWithExpiredTimers();
-      
-      const processedCount = await this.machineService.processExpiredTimers();
-      
-      if (processedCount > 0) {
-        this.logger.info(`Processed ${processedCount} expired timer(s)`, { processedCount, expiredMachines: expiredMachines.length });
-        
-        // Broadcast timer expiration events for each processed machine
-        if (this.statusBroadcastService && expiredMachines.length > 0) {
-          for (const machine of expiredMachines) {
-            // Get updated machine status after processing
-            const updatedMachine = await this.machineService.getMachineById(machine.id);
-            if (updatedMachine) {
-              this.statusBroadcastService.broadcastTimerExpired(machine.id, updatedMachine);
-            }
-          }
-        }
-      }
-
-      return processedCount;
-    } catch (error) {
-      this.logger.error('Failed to process expired timers', error instanceof Error ? error : new Error(String(error)));
-      throw error;
-    }
+    return true; // Always active since status is calculated dynamically
   }
 
   /**

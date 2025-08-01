@@ -1,7 +1,11 @@
+import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
 import { getDatabase, closeDatabase } from './connection';
 import { seeder } from './seed';
+
+// Load environment variables from .env file
+dotenv.config();
 
 export class DatabaseMigrator {
   private readonly schemaPath: string;

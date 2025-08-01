@@ -1,12 +1,12 @@
 import { Machine as MachineInterface, MachineRow, MachineStatus } from '../types';
 
 /**
- * Machine entity class with validation methods
+ * Machine entity class with time-based status calculation
+ * Status is determined by comparing current time with timer_end_time
  */
 export class Machine implements MachineInterface {
   public readonly id: number;
   public readonly name: string;
-  public status: 'available' | 'in-use';
   public timerEndTime?: number;
   public readonly createdAt: number;
   public updatedAt: number;
@@ -14,12 +14,23 @@ export class Machine implements MachineInterface {
   constructor(data: MachineInterface) {
     this.id = data.id;
     this.name = data.name;
-    this.status = data.status;
     this.timerEndTime = data.timerEndTime;
     this.createdAt = data.createdAt;
     this.updatedAt = data.updatedAt;
 
     this.validate();
+  }
+
+  /**
+   * Get current status based on timer_end_time vs current time
+   */
+  get status(): 'available' | 'in-use' {
+    if (!this.timerEndTime) {
+      return 'available';
+    }
+    
+    const now = Math.floor(Date.now() / 1000);
+    return this.timerEndTime > now ? 'in-use' : 'available';
   }
 
   /**
@@ -29,7 +40,6 @@ export class Machine implements MachineInterface {
     return new Machine({
       id: row.id,
       name: row.name,
-      status: row.status,
       timerEndTime: row.timer_end_time || undefined,
       createdAt: row.created_at,
       updatedAt: row.updated_at
@@ -42,7 +52,6 @@ export class Machine implements MachineInterface {
   toRow(): Omit<MachineRow, 'id'> {
     return {
       name: this.name,
-      status: this.status,
       timer_end_time: this.timerEndTime || null,
       created_at: this.createdAt,
       updated_at: this.updatedAt
@@ -73,18 +82,6 @@ export class Machine implements MachineInterface {
 
     if (this.name.length > 100) {
       throw new Error('Machine name must be 100 characters or less');
-    }
-
-    if (!['available', 'in-use'].includes(this.status)) {
-      throw new Error('Machine status must be either "available" or "in-use"');
-    }
-
-    if (this.status === 'in-use' && !this.timerEndTime) {
-      throw new Error('Timer end time is required when machine is in-use');
-    }
-
-    if (this.status === 'available' && this.timerEndTime) {
-      throw new Error('Timer end time should not be set when machine is available');
     }
 
     if (this.timerEndTime && this.timerEndTime <= 0) {
@@ -128,7 +125,6 @@ export class Machine implements MachineInterface {
     }
 
     const now = Math.floor(Date.now() / 1000);
-    this.status = 'in-use';
     this.timerEndTime = now + (durationMinutes * 60);
     this.updatedAt = now;
 
@@ -139,7 +135,6 @@ export class Machine implements MachineInterface {
    * Clear timer and make machine available
    */
   clearTimer(): void {
-    this.status = 'available';
     this.timerEndTime = undefined;
     this.updatedAt = Math.floor(Date.now() / 1000);
 

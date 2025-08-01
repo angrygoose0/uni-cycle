@@ -15,7 +15,7 @@ export class TimerSetup {
 
   constructor(machineId: number) {
     this.machineId = machineId;
-    
+
     // Get form elements
     const form = document.getElementById('timer-form') as HTMLFormElement;
     const durationInput = document.getElementById('duration') as HTMLInputElement;
@@ -54,10 +54,10 @@ export class TimerSetup {
   private async loadMachine(): Promise<void> {
     try {
       const response = await fetch('/api/machines');
-      
+
       if (!response.ok) {
         let errorMessage = `Failed to load machine information (HTTP ${response.status})`;
-        
+
         try {
           const errorData = await response.json();
           if (errorData.message) {
@@ -66,18 +66,18 @@ export class TimerSetup {
         } catch {
           // If we can't parse the error response, use the default message
         }
-        
+
         throw new Error(errorMessage);
       }
-      
+
       const data = await response.json();
-      
+
       if (!data.machines || !Array.isArray(data.machines)) {
         throw new Error('Invalid response format from server');
       }
-      
+
       const machine = data.machines.find((m: MachineStatus) => m.id === this.machineId);
-      
+
       if (!machine) {
         throw new Error(`Machine with ID ${this.machineId} not found. It may have been removed.`);
       }
@@ -90,12 +90,12 @@ export class TimerSetup {
       this.machineNameElement.textContent = `Machine: ${machine.name}`;
     } catch (error) {
       console.error('Error loading machine:', error);
-      
+
       // Provide more specific error messages based on error type
       if (error instanceof TypeError && error.message.includes('fetch')) {
         throw new Error('Unable to connect to server. Please check your internet connection.');
       }
-      
+
       throw error;
     }
   }
@@ -134,7 +134,7 @@ export class TimerSetup {
   private validateInput(): boolean {
     const value = parseInt(this.durationInput.value);
     const isValid = this.isValidDuration(value);
-    
+
     // Update input styling and show validation feedback
     if (this.durationInput.value && !isValid) {
       this.durationInput.style.borderColor = '#e74c3c';
@@ -185,9 +185,9 @@ export class TimerSetup {
    */
   private async handleSubmit(event: Event): Promise<void> {
     event.preventDefault();
-    
+
     const duration = parseInt(this.durationInput.value);
-    
+
     // Client-side validation
     if (!this.isValidDuration(duration)) {
       this.showError('Please enter a valid duration between 1 and 300 minutes.');
@@ -232,13 +232,13 @@ export class TimerSetup {
 
       if (!response.ok) {
         let errorMessage = `Failed to set timer (HTTP ${response.status})`;
-        
+
         try {
           const errorData = await response.json() as ApiErrorResponse;
           if (errorData.message) {
             errorMessage = errorData.message;
           }
-          
+
           // Provide user-friendly messages for specific error types
           switch (errorData.error) {
             case 'MACHINE_NOT_FOUND':
@@ -257,16 +257,16 @@ export class TimerSetup {
         } catch {
           // If we can't parse the error response, use the default message
         }
-        
+
         throw new Error(errorMessage);
       }
 
       const data = await response.json();
       const successData = data as SetTimerResponse;
-      
+
       if (successData.success) {
         this.showSuccess(`Timer set successfully for ${durationMinutes} minutes!`);
-        
+
         // Redirect to main page after 2 seconds
         setTimeout(() => {
           window.location.href = 'index.html';
@@ -276,12 +276,12 @@ export class TimerSetup {
       }
     } catch (error) {
       console.error('API error:', error);
-      
+
       // Provide more specific error messages based on error type
       if (error instanceof TypeError && error.message.includes('fetch')) {
         throw new Error('Unable to connect to server. Please check your internet connection.');
       }
-      
+
       throw error;
     }
   }
@@ -336,7 +336,7 @@ export class TimerSetup {
 export function getMachineIdFromUrl(): number | null {
   const urlParams = new URLSearchParams(window.location.search);
   const machineIdParam = urlParams.get('machineId');
-  
+
   if (!machineIdParam) {
     return null;
   }
