@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
 import { Server } from 'http';
 import { MachineController } from './controllers/MachineController';
 import { StatusBroadcastService } from './services/StatusBroadcastService';
@@ -80,7 +81,7 @@ export class Application {
     this.app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
     // Serve static files from public directory
-    const publicPath = process.env.NODE_ENV === 'production' ? 'public' : 'src/public';
+    const publicPath = process.env.NODE_ENV === 'production' ? path.join(__dirname, 'public') : 'src/public';
     this.app.use(express.static(publicPath));
 
     // Request logging middleware
@@ -166,8 +167,8 @@ export class Application {
 
     // Serve index.html for all non-API routes (SPA fallback)
     this.app.get('*', (req, res) => {
-      const publicPath = process.env.NODE_ENV === 'production' ? 'public' : 'src/public';
-      res.sendFile('index.html', { root: publicPath });
+      const publicPath = process.env.NODE_ENV === 'production' ? path.join(__dirname, 'public') : 'src/public';
+      res.sendFile(path.join(process.cwd(), publicPath, 'index.html'));
     });
 
     this.logger.info('✅ API routes configured');
