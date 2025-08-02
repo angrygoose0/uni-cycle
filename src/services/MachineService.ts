@@ -56,10 +56,7 @@ export class MachineService {
         throw new Error(`Machine with ID ${machineId} not found`);
       }
 
-      // Check if machine is available
-      if (!existingMachine.isAvailable()) {
-        throw new Error(`Machine ${existingMachine.name} is currently in use`);
-      }
+      // Allow timer override - no need to check if machine is available
 
       // Set the timer
       const updatedMachine = await this.machineRepository.setTimer(machineId, durationMinutes);

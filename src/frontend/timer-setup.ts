@@ -1,13 +1,18 @@
 import { TimerSetup, getMachineIdFromUrl } from './TimerSetup.js';
+import { ThemeManager } from './ThemeManager.js';
 
 /**
  * Main entry point for the timer setup page
- * Initializes the TimerSetup component
+ * Initializes the TimerSetup component and theme manager
  */
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', async () => {
   try {
+    // Initialize theme manager first
+    const themeManager = ThemeManager.getInstance();
+    themeManager.init();
+
     // Get machine ID from URL parameters
     const machineId = getMachineIdFromUrl();
     

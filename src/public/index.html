@@ -7,27 +7,57 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>Laundry Machine Status</h1>
-            <p>Click on an available machine to set a timer</p>
-        </header>
-        
-        <main>
-            <div id="error-container" class="error-message" style="display: none;">
-                <!-- Error messages will be displayed here -->
-            </div>
-            <div id="machine-list" class="machine-grid">
-                <!-- Machine list will be populated by JavaScript -->
-                <div class="loading">Loading machines...</div>
-            </div>
-        </main>
-        
-        <footer>
-            <p>Status updates automatically every 3 seconds</p>
-        </footer>
+    <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
+        🌙
+    </button>
+    
+    <h1 style="text-align: center; font-size: 3rem; font-weight: bold; margin: 40px 0; color: var(--text-accent);">uni-cycle</h1>
+    
+    <div id="error-container" class="error-message" style="display: none;">
+        <!-- Error messages will be displayed here -->
+    </div>
+    <div id="machine-list" class="machine-grid">
+        <!-- Machine list will be populated by JavaScript -->
+        <div class="loading">Loading machines...</div>
     </div>
     
     <script type="module" src="js/main.js"></script>
+    <script>
+        // Theme toggle functionality
+        document.addEventListener('DOMContentLoaded', () => {
+            const button = document.getElementById('theme-toggle');
+            const html = document.documentElement;
+            
+            // Load saved theme or default to dark mode
+            const savedTheme = localStorage.getItem('laundry-timer-theme');
+            let currentTheme = savedTheme || 'dark';
+            
+            // Apply initial theme
+            if (currentTheme === 'dark') {
+                html.setAttribute('data-theme', 'dark');
+                if (button) button.textContent = '☀️';
+            } else {
+                html.removeAttribute('data-theme');
+                if (button) button.textContent = '🌙';
+            }
+            
+            // Add click handler
+            if (button) {
+                button.addEventListener('click', () => {
+                    const isDark = html.getAttribute('data-theme') === 'dark';
+                    if (isDark) {
+                        html.removeAttribute('data-theme');
+                        button.textContent = '🌙';
+                        currentTheme = 'light';
+                    } else {
+                        html.setAttribute('data-theme', 'dark');
+                        button.textContent = '☀️';
+                        currentTheme = 'dark';
+                    }
+                    localStorage.setItem('laundry-timer-theme', currentTheme);
+                });
+            }
+        });
+    </script>
 </body>
 </html>

@@ -82,12 +82,19 @@ export class TimerSetup {
         throw new Error(`Machine with ID ${this.machineId} not found. It may have been removed.`);
       }
 
-      if (machine.status !== 'available') {
-        throw new Error(`Machine "${machine.name}" is currently in use. Please select a different machine.`);
-      }
+      // Machine can be available or in-use (for timer override)
 
       this.machine = machine;
-      this.machineNameElement.textContent = `Machine: ${machine.name}`;
+
+      // Show machine info with current status
+      if (machine.status === 'available') {
+        this.machineNameElement.textContent = `Machine: ${machine.name} (Available)`;
+      } else if (machine.status === 'in-use' && machine.remainingTimeMs) {
+        const remainingMinutes = Math.ceil(machine.remainingTimeMs / (1000 * 60));
+        this.machineNameElement.textContent = `Machine: ${machine.name} (Override ${remainingMinutes}min timer)`;
+      } else {
+        this.machineNameElement.textContent = `Machine: ${machine.name}`;
+      }
     } catch (error) {
       console.error('Error loading machine:', error);
 
@@ -235,6 +242,8 @@ export class TimerSetup {
 
         try {
           const errorData = await response.json() as ApiErrorResponse;
+          console.error('API Error Response:', errorData); // Debug logging
+
           if (errorData.message) {
             errorMessage = errorData.message;
           }
@@ -245,7 +254,9 @@ export class TimerSetup {
               errorMessage = 'This machine is no longer available. Please go back and select a different machine.';
               break;
             case 'MACHINE_IN_USE':
-              errorMessage = 'This machine is now in use by someone else. Please go back and select a different machine.';
+              // Remove this error case since we now allow overrides
+              console.log('MACHINE_IN_USE error - this should not happen with overrides enabled');
+              errorMessage = errorData.message || 'Machine is in use but override should be allowed';
               break;
             case 'INVALID_DURATION':
               errorMessage = 'The timer duration is invalid. Please enter a value between 1 and 300 minutes.';
@@ -253,8 +264,12 @@ export class TimerSetup {
             case 'INVALID_MACHINE_ID':
               errorMessage = 'Invalid machine selected. Please go back and try again.';
               break;
+            default:
+              console.error('Unknown error type:', errorData.error);
+              errorMessage = errorData.message || errorMessage;
           }
-        } catch {
+        } catch (parseError) {
+          console.error('Failed to parse error response:', parseError);
           // If we can't parse the error response, use the default message
         }
 
@@ -265,12 +280,15 @@ export class TimerSetup {
       const successData = data as SetTimerResponse;
 
       if (successData.success) {
-        this.showSuccess(`Timer set successfully for ${durationMinutes} minutes!`);
+        const wasInUse = this.machine?.status === 'in-use';
+        const message = wasInUse
+          ? `Timer overridden! Set to ${durationMinutes} minutes.`
+          : `Timer set successfully for ${durationMinutes} minutes!`;
 
-        // Redirect to main page after 2 seconds
-        setTimeout(() => {
-          window.location.href = 'index.html';
-        }, 2000);
+        this.showSuccess(message);
+
+        // Redirect immediately with confetti flag
+        window.location.href = `index.html?confetti=${this.machineId}`;
       } else {
         throw new Error('Failed to set timer - unexpected response format');
       }
@@ -328,6 +346,8 @@ export class TimerSetup {
     this.errorMessageElement.style.display = 'none';
     this.successMessageElement.style.display = 'none';
   }
+
+
 }
 
 /**

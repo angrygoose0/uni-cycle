@@ -1,8 +1,9 @@
 import { MachineList } from './MachineList.js';
+import { ThemeManager } from './ThemeManager.js';
 
 /**
  * Main entry point for the index page
- * Initializes the MachineList component
+ * Initializes the MachineList component and theme manager
  */
 
 let machineList: MachineList | null = null;
@@ -10,6 +11,11 @@ let machineList: MachineList | null = null;
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', async () => {
   try {
+    // Initialize theme manager first
+    const themeManager = ThemeManager.getInstance();
+    themeManager.init();
+
+    // Initialize machine list
     machineList = new MachineList('machine-list');
     await machineList.init();
   } catch (error) {

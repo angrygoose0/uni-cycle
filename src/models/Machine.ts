@@ -120,10 +120,7 @@ export class Machine implements MachineInterface {
   setTimer(durationMinutes: number): void {
     Machine.validateTimerDuration(durationMinutes);
 
-    if (this.status === 'in-use') {
-      throw new Error('Cannot set timer on machine that is already in use');
-    }
-
+    // Allow timer override - remove the in-use check
     const now = Math.floor(Date.now() / 1000);
     this.timerEndTime = now + (durationMinutes * 60);
     this.updatedAt = now;
