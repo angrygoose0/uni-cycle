@@ -12,11 +12,14 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/dist/index.js"
+      "dest": "/index.js"
     },
     {
       "src": "/(.*)",
-      "dest": "/dist/index.js"
+      "dest": "/index.js"
     }
-  ]
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  }
 }

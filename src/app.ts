@@ -80,7 +80,8 @@ export class Application {
     this.app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
     // Serve static files from public directory
-    this.app.use(express.static('src/public'));
+    const publicPath = process.env.NODE_ENV === 'production' ? 'public' : 'src/public';
+    this.app.use(express.static(publicPath));
 
     // Request logging middleware
     this.app.use((req, res, next) => {
@@ -161,6 +162,12 @@ export class Application {
         error: 'NOT_FOUND',
         message: `API endpoint ${req.method} ${req.originalUrl} not found`
       });
+    });
+
+    // Serve index.html for all non-API routes (SPA fallback)
+    this.app.get('*', (req, res) => {
+      const publicPath = process.env.NODE_ENV === 'production' ? 'public' : 'src/public';
+      res.sendFile('index.html', { root: publicPath });
     });
 
     this.logger.info('✅ API routes configured');
