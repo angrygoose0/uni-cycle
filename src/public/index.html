@@ -1,18 +1,28 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Laundry Machine Timer</title>
     <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
     <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
         🌙
     </button>
-    
-    <h1 style="text-align: center; font-size: 3rem; font-weight: bold; margin: 40px 0; color: var(--text-accent);">uni-cycle</h1>
-    
+
+    <h1
+        style="text-align: center; font-size: 3rem; font-weight: bold; margin: 40px 0 10px 0; color: var(--text-accent);">
+        uni-cycle/<span style="color: #27ae60;">UHT</span>
+    </h1>
+    <p class="suggestions-email"
+        style="text-align: center; margin: 0 0 30px 0; color: var(--text-secondary); font-size: 1rem;">
+        Feedback to: <a href="mailto:hello@uni-cycle.app"
+            style="color: var(--text-accent); text-decoration: none;">hello@uni-cycle.app</a>
+    </p>
+
     <div id="error-container" class="error-message" style="display: none;">
         <!-- Error messages will be displayed here -->
     </div>
@@ -20,18 +30,18 @@
         <!-- Machine list will be populated by JavaScript -->
         <div class="loading">Loading machines...</div>
     </div>
-    
+
     <script type="module" src="js/main.js"></script>
     <script>
         // Theme toggle functionality
         document.addEventListener('DOMContentLoaded', () => {
             const button = document.getElementById('theme-toggle');
             const html = document.documentElement;
-            
+
             // Load saved theme or default to dark mode
             const savedTheme = localStorage.getItem('laundry-timer-theme');
             let currentTheme = savedTheme || 'dark';
-            
+
             // Apply initial theme
             if (currentTheme === 'dark') {
                 html.setAttribute('data-theme', 'dark');
@@ -40,7 +50,7 @@
                 html.removeAttribute('data-theme');
                 if (button) button.textContent = '🌙';
             }
-            
+
             // Add click handler
             if (button) {
                 button.addEventListener('click', () => {
@@ -60,4 +70,5 @@
         });
     </script>
 </body>
+
 </html>
