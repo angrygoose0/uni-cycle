@@ -104,13 +104,113 @@ main {
     flex: 1;
 }
 
-/* Machine grid */
+/* Machine grid - now used as container for sections */
 .machine-grid {
+    margin: 0 20px 30px 20px;
+    padding: 0 10px;
+}
+
+/* Container for side-by-side sections */
+.machine-sections-container {
+    display: flex;
+    gap: 30px;
+    height: calc(100vh - 200px);
+    min-height: 600px;
+}
+
+/* Machine sections */
+.machine-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0; /* Allows flex items to shrink below their content size */
+}
+
+.left-section {
+    border-right: 2px solid var(--border-color);
+    padding-right: 15px;
+}
+
+.right-section {
+    padding-left: 15px;
+}
+
+.section-title {
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: var(--text-accent);
+    margin-bottom: 15px;
+    text-align: center;
+    padding: 10px 0;
+    border-bottom: 2px solid var(--border-color);
+}
+
+/* Scrollable container for each machine group */
+.machine-scroll-container {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 10px 5px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) transparent;
+}
+
+.machine-scroll-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.machine-scroll-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.machine-scroll-container::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+}
+
+.machine-scroll-container::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
+}
+
+/* Machine group layout */
+.machine-group {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 20px;
-    margin: 0 20px 30px 20px;
-    padding: 0 10px;
+    min-width: 100%;
+    padding: 5px;
+}
+
+/* For smaller screens, make it horizontally scrollable */
+@media (max-width: 1200px) {
+    .machine-group {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+    }
+}
+
+@media (max-width: 768px) {
+    .machine-group {
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        gap: 15px;
+        padding-bottom: 10px;
+    }
+    
+    .machine-group .machine-card {
+        flex: 0 0 180px;
+        min-width: 180px;
+    }
+}
+
+/* No machines message */
+.no-machines {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    grid-column: 1 / -1;
 }
 
 .machine-card {
@@ -411,9 +511,29 @@ footer {
         font-size: 2rem;
     }
     
-    .machine-grid {
-        grid-template-columns: 1fr;
-        gap: 15px;
+    /* Stack sections vertically on mobile */
+    .machine-sections-container {
+        flex-direction: column;
+        gap: 20px;
+        height: auto;
+        min-height: auto;
+    }
+    
+    .left-section {
+        border-right: none;
+        border-bottom: 2px solid var(--border-color);
+        padding-right: 0;
+        padding-bottom: 15px;
+    }
+    
+    .right-section {
+        padding-left: 0;
+        padding-top: 15px;
+    }
+    
+    .machine-scroll-container {
+        max-height: 400px;
+        overflow-y: auto;
     }
     
     .timer-setup-form {

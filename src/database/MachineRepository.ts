@@ -36,7 +36,7 @@ export class MachineRepository {
    */
   async findAll(): Promise<Machine[]> {
     const db = await this.getDb();
-    const rows = await db.all<MachineRow>('SELECT * FROM machines ORDER BY name');
+    const rows = await db.all<MachineRow>('SELECT * FROM machines ORDER BY id ASC');
     return rows.map(row => Machine.fromRow(row));
   }
 

@@ -213,7 +213,7 @@ export class MachineList {
   }
 
   /**
-   * Render the machine list
+   * Render the machine list grouped by type
    */
   private render(): void {
     if (this.machines.length === 0) {
@@ -221,11 +221,39 @@ export class MachineList {
       return;
     }
 
-    const machineCards = this.machines
+    // Group machines by type
+    const washers = this.machines.filter(machine => machine.id >= 1 && machine.id <= 13);
+    const dryers = this.machines.filter(machine => machine.id >= 14 && machine.id <= 27);
+
+    const washerCards = washers
       .map(machine => this.createMachineCard(machine))
       .join('');
 
-    this.container.innerHTML = machineCards;
+    const dryerCards = dryers
+      .map(machine => this.createMachineCard(machine))
+      .join('');
+
+    this.container.innerHTML = `
+      <div class="machine-sections-container">
+        <div class="machine-section left-section">
+          <h2 class="section-title">Washers</h2>
+          <div class="machine-scroll-container">
+            <div class="machine-group washers">
+              ${washerCards || '<div class="no-machines">No washers available</div>'}
+            </div>
+          </div>
+        </div>
+        
+        <div class="machine-section right-section">
+          <h2 class="section-title">Dryers</h2>
+          <div class="machine-scroll-container">
+            <div class="machine-group dryers">
+              ${dryerCards || '<div class="no-machines">No dryers available</div>'}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
   }
 
   /**
