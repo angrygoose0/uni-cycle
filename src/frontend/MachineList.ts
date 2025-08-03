@@ -113,7 +113,7 @@ export class MachineList {
       try {
         await this.loadMachines();
         this.hideError(); // Hide any previous errors if polling succeeds
-        this.render();
+        this.renderWithScrollPreservation();
       } catch (error) {
         console.error('Error during polling update:', error);
         const errorMessage = error instanceof Error ? error.message : 'Failed to update machine status';
@@ -225,6 +225,10 @@ export class MachineList {
     const washers = this.machines.filter(machine => machine.id >= 1 && machine.id <= 13);
     const dryers = this.machines.filter(machine => machine.id >= 14 && machine.id <= 27);
 
+    // Count available machines
+    const availableWashers = washers.filter(machine => machine.status === 'available').length;
+    const availableDryers = dryers.filter(machine => machine.status === 'available').length;
+
     const washerCards = washers
       .map(machine => this.createMachineCard(machine))
       .join('');
@@ -236,7 +240,10 @@ export class MachineList {
     this.container.innerHTML = `
       <div class="machine-sections-container">
         <div class="machine-section left-section">
-          <h2 class="section-title">Washers</h2>
+          <h2 class="section-title">
+            Washers 
+            <span class="available-count">${availableWashers} available</span>
+          </h2>
           <div class="machine-scroll-container">
             <div class="machine-group washers">
               ${washerCards || '<div class="no-machines">No washers available</div>'}
@@ -245,7 +252,10 @@ export class MachineList {
         </div>
         
         <div class="machine-section right-section">
-          <h2 class="section-title">Dryers</h2>
+          <h2 class="section-title">
+            Dryers 
+            <span class="available-count">${availableDryers} available</span>
+          </h2>
           <div class="machine-scroll-container">
             <div class="machine-group dryers">
               ${dryerCards || '<div class="no-machines">No dryers available</div>'}
@@ -254,6 +264,69 @@ export class MachineList {
         </div>
       </div>
     `;
+  }
+
+  /**
+   * Render with scroll position preservation for polling updates
+   */
+  private renderWithScrollPreservation(): void {
+    if (this.machines.length === 0) {
+      this.container.innerHTML = '<div class="loading">No machines available</div>';
+      return;
+    }
+
+    // Store current scroll positions
+    const washerScrollContainer = this.container.querySelector('.left-section .machine-scroll-container') as HTMLElement;
+    const dryerScrollContainer = this.container.querySelector('.right-section .machine-scroll-container') as HTMLElement;
+    
+    const washerScrollTop = washerScrollContainer?.scrollTop || 0;
+    const dryerScrollTop = dryerScrollContainer?.scrollTop || 0;
+
+    // Group machines by type
+    const washers = this.machines.filter(machine => machine.id >= 1 && machine.id <= 13);
+    const dryers = this.machines.filter(machine => machine.id >= 14 && machine.id <= 27);
+
+    // Count available machines
+    const availableWashers = washers.filter(machine => machine.status === 'available').length;
+    const availableDryers = dryers.filter(machine => machine.status === 'available').length;
+
+    // Update available counts without full re-render
+    const washerCountElement = this.container.querySelector('.left-section .available-count');
+    const dryerCountElement = this.container.querySelector('.right-section .available-count');
+    
+    if (washerCountElement) {
+      washerCountElement.textContent = `${availableWashers} available`;
+    }
+    if (dryerCountElement) {
+      dryerCountElement.textContent = `${availableDryers} available`;
+    }
+
+    // Update machine cards content
+    const washerGroup = this.container.querySelector('.machine-group.washers');
+    const dryerGroup = this.container.querySelector('.machine-group.dryers');
+
+    if (washerGroup) {
+      const washerCards = washers.map(machine => this.createMachineCard(machine)).join('');
+      washerGroup.innerHTML = washerCards || '<div class="no-machines">No washers available</div>';
+    }
+
+    if (dryerGroup) {
+      const dryerCards = dryers.map(machine => this.createMachineCard(machine)).join('');
+      dryerGroup.innerHTML = dryerCards || '<div class="no-machines">No dryers available</div>';
+    }
+
+    // Restore scroll positions
+    setTimeout(() => {
+      const newWasherScrollContainer = this.container.querySelector('.left-section .machine-scroll-container') as HTMLElement;
+      const newDryerScrollContainer = this.container.querySelector('.right-section .machine-scroll-container') as HTMLElement;
+      
+      if (newWasherScrollContainer) {
+        newWasherScrollContainer.scrollTop = washerScrollTop;
+      }
+      if (newDryerScrollContainer) {
+        newDryerScrollContainer.scrollTop = dryerScrollTop;
+      }
+    }, 0);
   }
 
   /**

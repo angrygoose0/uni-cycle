@@ -143,6 +143,32 @@ main {
     text-align: center;
     padding: 10px 0;
     border-bottom: 2px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.available-count {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #27ae60;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.available-count::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #27ae60;
+    box-shadow: 
+        0 0 0 2px rgba(39, 174, 96, 0.3),
+        0 0 8px rgba(39, 174, 96, 0.6),
+        inset 0 1px 1px rgba(255, 255, 255, 0.3);
+    animation: pulse-green 2s infinite;
 }
 
 /* Scrollable container for each machine group */
@@ -540,6 +566,12 @@ footer {
         font-size: 1.5rem;
         margin-bottom: 12px;
         padding: 8px 0;
+        flex-direction: column;
+        gap: 6px;
+    }
+    
+    .available-count {
+        font-size: 0.8rem;
     }
     
     .machine-scroll-container {
@@ -620,6 +652,12 @@ footer {
         font-size: 1.3rem;
         margin-bottom: 10px;
         padding: 6px 0;
+        flex-direction: column;
+        gap: 4px;
+    }
+    
+    .available-count {
+        font-size: 0.75rem;
     }
     
     .machine-scroll-container {
