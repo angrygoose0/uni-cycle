@@ -131,11 +131,11 @@ main {
 }
 
 .machine-card.available {
-    cursor: pointer;
+    cursor: default;
 }
 
 .machine-card.in-use {
-    cursor: pointer;
+    cursor: default;
     opacity: 0.9;
 }
 

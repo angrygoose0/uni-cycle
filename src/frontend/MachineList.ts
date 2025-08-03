@@ -202,11 +202,9 @@ export class MachineList {
       timerDisplay = `<div class="timer-remaining">${this.formatRemainingTime(machine.remainingTimeMs)}</div>`;
     }
 
-    // All machines are now clickable for timer override
-    const clickHandler = `onclick="window.location.href='timer-setup.html?machineId=${machine.id}'"`;
-
+    // Cards are not clickable - only accessible via direct links (QR codes)
     return `
-      <div class="${cardClass}" ${clickHandler}>
+      <div class="${cardClass}">
         <div class="machine-name">${machine.name}</div>
         <div class="machine-status ${statusClass}">${statusText}</div>
         ${timerDisplay}
