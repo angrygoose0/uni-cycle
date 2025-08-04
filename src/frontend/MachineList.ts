@@ -363,8 +363,9 @@ export class MachineList {
     if (confettiMachineId) {
       const machineId = parseInt(confettiMachineId);
       if (!isNaN(machineId)) {
-        // Wait a bit for the DOM to be ready, then show confetti
+        // Wait a bit for the DOM to be ready, then scroll to machine and show confetti
         setTimeout(() => {
+          this.scrollToMachine(machineId);
           this.showConfettiForMachine(machineId);
         }, 100);
       }
@@ -397,6 +398,60 @@ export class MachineList {
           }, 200);
         }
       }
+    });
+  }
+
+  /**
+   * Smoothly scroll to a specific machine in the correct container
+   */
+  private scrollToMachine(machineId: number): void {
+    // Find the machine card element
+    const machineCards = this.container.querySelectorAll('.machine-card');
+    let targetCard: Element | null = null;
+    
+    machineCards.forEach((card) => {
+      const machineNameElement = card.querySelector('.machine-name');
+      if (machineNameElement) {
+        const machineName = machineNameElement.textContent;
+        const machine = this.machines.find(m => m.id === machineId && m.name === machineName);
+        if (machine) {
+          targetCard = card;
+        }
+      }
+    });
+
+    if (!targetCard) return;
+
+    // Determine which scroll container this machine belongs to
+    const isWasher = machineId >= 1 && machineId <= 13;
+    const scrollContainerSelector = isWasher 
+      ? '.left-section .machine-scroll-container' 
+      : '.right-section .machine-scroll-container';
+    
+    const scrollContainer = this.container.querySelector(scrollContainerSelector) as HTMLElement;
+    
+    if (!scrollContainer) return;
+
+    // Get the position of the target card relative to the scroll container
+    const containerRect = scrollContainer.getBoundingClientRect();
+    const cardRect = (targetCard as HTMLElement).getBoundingClientRect();
+    
+    // Calculate the scroll position to center the card in the container
+    const cardRelativeTop = cardRect.top - containerRect.top + scrollContainer.scrollTop;
+    const containerHeight = scrollContainer.clientHeight;
+    const cardHeight = cardRect.height;
+    
+    // Center the card in the container
+    const targetScrollTop = cardRelativeTop - (containerHeight / 2) + (cardHeight / 2);
+    
+    // Ensure we don't scroll beyond the bounds
+    const maxScrollTop = scrollContainer.scrollHeight - scrollContainer.clientHeight;
+    const finalScrollTop = Math.max(0, Math.min(targetScrollTop, maxScrollTop));
+
+    // Smooth scroll to the target position
+    scrollContainer.scrollTo({
+      top: finalScrollTop,
+      behavior: 'smooth'
     });
   }
 
