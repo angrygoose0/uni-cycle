@@ -1,4 +1,5 @@
 import { MachineRepository } from '../database/MachineRepository';
+import { ActionLogRepository } from '../database/ActionLogRepository';
 import { Machine } from '../models/Machine';
 import { MachineStatus, TimerRequest } from '../types';
 import { StatusBroadcastService } from './StatusBroadcastService';
@@ -9,10 +10,12 @@ import { createLogger } from '../utils/logger';
  */
 export class MachineService {
   private machineRepository: MachineRepository;
+  private actionLogRepository: ActionLogRepository;
   private logger = createLogger('MachineService');
 
-  constructor(machineRepository?: MachineRepository) {
+  constructor(machineRepository?: MachineRepository, actionLogRepository?: ActionLogRepository) {
     this.machineRepository = machineRepository || new MachineRepository();
+    this.actionLogRepository = actionLogRepository || new ActionLogRepository();
   }
 
   /**
@@ -60,6 +63,10 @@ export class MachineService {
 
       // Set the timer
       const updatedMachine = await this.machineRepository.setTimer(machineId, durationMinutes);
+
+      // Log the action
+      await this.logAction(machineId, existingMachine.name, 'set_timer', durationMinutes);
+
       return updatedMachine.toStatus();
     } catch (error) {
       throw new Error(`Failed to set timer: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -81,6 +88,10 @@ export class MachineService {
 
       // Clear the timer
       const updatedMachine = await this.machineRepository.clearTimer(machineId);
+
+      // Log the action
+      await this.logAction(machineId, existingMachine.name, 'clear_timer');
+
       return updatedMachine.toStatus();
     } catch (error) {
       throw new Error(`Failed to clear timer: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -178,6 +189,93 @@ export class MachineService {
   private validateMachineStatus(status: string): void {
     if (!['available', 'in-use'].includes(status)) {
       throw new Error('Machine status must be either "available" or "in-use"');
+    }
+  }
+
+  /**
+   * Log an action to the database
+   */
+  private async logAction(
+    machineId: number, 
+    machineName: string, 
+    actionType: 'set_timer' | 'clear_timer' | 'timer_expired', 
+    durationMinutes?: number
+  ): Promise<void> {
+    try {
+      const now = Math.floor(Date.now() / 1000);
+      await this.actionLogRepository.create({
+        machineId,
+        machineName,
+        actionType,
+        durationMinutes,
+        timestamp: now,
+        createdAt: now
+      });
+      
+      this.logger.info(`Action logged: ${actionType} for machine ${machineName} (ID: ${machineId})${durationMinutes ? ` - ${durationMinutes} minutes` : ''}`);
+    } catch (error) {
+      // Log the error but don't throw it - we don't want logging failures to break the main functionality
+      this.logger.error(`Failed to log action: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Get action logs for a specific machine
+   */
+  async getMachineActionLogs(machineId: number, limit?: number): Promise<any[]> {
+    try {
+      this.validateMachineId(machineId);
+      const logs = await this.actionLogRepository.findByMachineId(machineId, limit);
+      return logs.map(log => ({
+        id: log.id,
+        machineId: log.machineId,
+        machineName: log.machineName,
+        actionType: log.actionType,
+        durationMinutes: log.durationMinutes,
+        timestamp: log.timestamp,
+        formattedTimestamp: log.getFormattedTimestamp(),
+        description: log.getActionDescription()
+      }));
+    } catch (error) {
+      throw new Error(`Failed to retrieve action logs: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Get recent action logs across all machines
+   */
+  async getRecentActionLogs(limit?: number): Promise<any[]> {
+    try {
+      const logs = await this.actionLogRepository.findAll(limit);
+      return logs.map(log => ({
+        id: log.id,
+        machineId: log.machineId,
+        machineName: log.machineName,
+        actionType: log.actionType,
+        durationMinutes: log.durationMinutes,
+        timestamp: log.timestamp,
+        formattedTimestamp: log.getFormattedTimestamp(),
+        description: log.getActionDescription()
+      }));
+    } catch (error) {
+      throw new Error(`Failed to retrieve recent action logs: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Get action log statistics
+   */
+  async getActionLogStats(): Promise<{
+    total: number;
+    setTimerCount: number;
+    clearTimerCount: number;
+    expiredTimerCount: number;
+    todayCount: number;
+  }> {
+    try {
+      return await this.actionLogRepository.getStats();
+    } catch (error) {
+      throw new Error(`Failed to retrieve action log statistics: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 }

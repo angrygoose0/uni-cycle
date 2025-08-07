@@ -65,21 +65,33 @@ export class DatabaseMigrator {
   private async verifyMigration(db: any): Promise<void> {
     try {
       // Check if machines table exists and has the expected structure
-      const tableInfo = await db.all(`PRAGMA table_info(machines)`);
+      const machineTableInfo = await db.all(`PRAGMA table_info(machines)`);
       
-      if (tableInfo.length === 0) {
+      if (machineTableInfo.length === 0) {
         throw new Error('Machines table was not created');
       }
 
       console.log('✓ Machines table structure verified');
+
+      // Check if action_logs table exists and has the expected structure
+      const actionLogTableInfo = await db.all(`PRAGMA table_info(action_logs)`);
+      
+      if (actionLogTableInfo.length === 0) {
+        throw new Error('Action logs table was not created');
+      }
+
+      console.log('✓ Action logs table structure verified');
 
       // Check if sample data was inserted
       const machineCount = await db.get(`SELECT COUNT(*) as count FROM machines`);
       console.log(`✓ Found ${machineCount.count} machines in database`);
 
       // Check indexes
-      const indexes = await db.all(`PRAGMA index_list(machines)`);
-      console.log(`✓ Found ${indexes.length} indexes on machines table`);
+      const machineIndexes = await db.all(`PRAGMA index_list(machines)`);
+      console.log(`✓ Found ${machineIndexes.length} indexes on machines table`);
+
+      const actionLogIndexes = await db.all(`PRAGMA index_list(action_logs)`);
+      console.log(`✓ Found ${actionLogIndexes.length} indexes on action_logs table`);
 
     } catch (error) {
       console.error('Migration verification failed:', error);
@@ -118,6 +130,7 @@ export class DatabaseMigrator {
       const db = await getDatabase();
       
       // Drop existing tables
+      await db.run('DROP TABLE IF EXISTS action_logs');
       await db.run('DROP TABLE IF EXISTS machines');
       console.log('✓ Dropped existing tables');
       

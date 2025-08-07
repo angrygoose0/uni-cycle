@@ -65,3 +65,24 @@ export interface SSEClient {
   response: any; // Express Response object
   lastPing: number;
 }
+
+// Action log types
+export interface ActionLog {
+  id: number;
+  machineId: number;
+  machineName: string;
+  actionType: 'set_timer' | 'clear_timer' | 'timer_expired';
+  durationMinutes?: number;
+  timestamp: number;
+  createdAt: number;
+}
+
+export interface ActionLogRow {
+  id: number;
+  machine_id: number;
+  machine_name: string;
+  action_type: 'set_timer' | 'clear_timer' | 'timer_expired';
+  duration_minutes: number | null;
+  timestamp: number;
+  created_at: number;
+}

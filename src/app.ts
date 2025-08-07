@@ -152,6 +152,11 @@ export class Application {
     this.app.get('/api/machines', (req, res) => this.machineController!.getAllMachines(req, res));
     this.app.post('/api/machines/:id/timer', (req, res) => this.machineController!.setTimer(req, res));
 
+    // Action log endpoints
+    this.app.get('/api/machines/:id/logs', (req, res) => this.machineController!.getMachineActionLogs(req, res));
+    this.app.get('/api/logs', (req, res) => this.machineController!.getRecentActionLogs(req, res));
+    this.app.get('/api/logs/stats', (req, res) => this.machineController!.getActionLogStats(req, res));
+
     // Real-time status update endpoints
     this.app.get('/api/machines/status', (req, res) => this.machineController!.getStatusUpdates(req, res));
     this.app.get('/api/machines/status/polling', (req, res) => this.machineController!.getStatusPolling(req, res));
@@ -371,6 +376,9 @@ export class Application {
     this.logger.info('📡 API Endpoints:');
     this.logger.info(`   GET  ${baseUrl}/api/machines - List all machines`);
     this.logger.info(`   POST ${baseUrl}/api/machines/:id/timer - Set timer for machine`);
+    this.logger.info(`   GET  ${baseUrl}/api/machines/:id/logs - Get action logs for specific machine`);
+    this.logger.info(`   GET  ${baseUrl}/api/logs - Get recent action logs (all machines)`);
+    this.logger.info(`   GET  ${baseUrl}/api/logs/stats - Get action log statistics`);
     this.logger.info(`   GET  ${baseUrl}/api/machines/status - Real-time status updates (SSE)`);
     this.logger.info(`   GET  ${baseUrl}/api/machines/status/polling - Polling fallback for status updates`);
   }

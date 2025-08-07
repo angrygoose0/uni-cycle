@@ -224,6 +224,123 @@ export class MachineController {
   }
 
   /**
+   * GET /api/machines/:id/logs - Get action logs for a specific machine
+   */
+  async getMachineActionLogs(req: Request, res: Response): Promise<void> {
+    try {
+      // Parse and validate machine ID
+      const machineId = parseInt(req.params.id, 10);
+      if (isNaN(machineId) || machineId <= 0) {
+        this.logger.warn('Invalid machine ID provided for logs', { machineId: req.params.id });
+        const errorResponse: ApiErrorResponse = {
+          success: false,
+          error: 'INVALID_MACHINE_ID',
+          message: 'Machine ID must be a positive integer'
+        };
+        res.status(400).json(errorResponse);
+        return;
+      }
+
+      // Parse optional limit parameter
+      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 50;
+      if (isNaN(limit) || limit <= 0 || limit > 1000) {
+        this.logger.warn('Invalid limit parameter for logs', { limit: req.query.limit });
+        const errorResponse: ApiErrorResponse = {
+          success: false,
+          error: 'INVALID_LIMIT',
+          message: 'Limit must be a positive integer between 1 and 1000'
+        };
+        res.status(400).json(errorResponse);
+        return;
+      }
+
+      this.logger.info('Getting action logs for machine', { machineId, limit });
+      const logs = await this.machineService.getMachineActionLogs(machineId, limit);
+      
+      res.status(200).json({
+        success: true,
+        machineId,
+        logs,
+        count: logs.length
+      });
+    } catch (error) {
+      this.logger.error('Failed to get machine action logs', error instanceof Error ? error : new Error(String(error)));
+      
+      const errorResponse: ApiErrorResponse = {
+        success: false,
+        error: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed to retrieve action logs'
+      };
+
+      res.status(500).json(errorResponse);
+    }
+  }
+
+  /**
+   * GET /api/logs - Get recent action logs across all machines
+   */
+  async getRecentActionLogs(req: Request, res: Response): Promise<void> {
+    try {
+      // Parse optional limit parameter
+      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 100;
+      if (isNaN(limit) || limit <= 0 || limit > 1000) {
+        this.logger.warn('Invalid limit parameter for recent logs', { limit: req.query.limit });
+        const errorResponse: ApiErrorResponse = {
+          success: false,
+          error: 'INVALID_LIMIT',
+          message: 'Limit must be a positive integer between 1 and 1000'
+        };
+        res.status(400).json(errorResponse);
+        return;
+      }
+
+      this.logger.info('Getting recent action logs', { limit });
+      const logs = await this.machineService.getRecentActionLogs(limit);
+      
+      res.status(200).json({
+        success: true,
+        logs,
+        count: logs.length
+      });
+    } catch (error) {
+      this.logger.error('Failed to get recent action logs', error instanceof Error ? error : new Error(String(error)));
+      
+      const errorResponse: ApiErrorResponse = {
+        success: false,
+        error: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed to retrieve recent action logs'
+      };
+
+      res.status(500).json(errorResponse);
+    }
+  }
+
+  /**
+   * GET /api/logs/stats - Get action log statistics
+   */
+  async getActionLogStats(req: Request, res: Response): Promise<void> {
+    try {
+      this.logger.info('Getting action log statistics');
+      const stats = await this.machineService.getActionLogStats();
+      
+      res.status(200).json({
+        success: true,
+        stats
+      });
+    } catch (error) {
+      this.logger.error('Failed to get action log statistics', error instanceof Error ? error : new Error(String(error)));
+      
+      const errorResponse: ApiErrorResponse = {
+        success: false,
+        error: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed to retrieve action log statistics'
+      };
+
+      res.status(500).json(errorResponse);
+    }
+  }
+
+  /**
    * Get broadcast service statistics
    */
   getBroadcastStats(): {
