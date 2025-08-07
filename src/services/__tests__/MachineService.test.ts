@@ -138,7 +138,7 @@ describe('MachineService', () => {
     it('should throw error for invalid timer duration', async () => {
       // Act & Assert
       await expect(machineService.setTimer(1, 0)).rejects.toThrow('Failed to set timer: Invalid timer duration: Timer duration must be at least 1 minute');
-      await expect(machineService.setTimer(1, 301)).rejects.toThrow('Failed to set timer: Invalid timer duration: Timer duration cannot exceed 300 minutes (5 hours)');
+      await expect(machineService.setTimer(1, 121)).rejects.toThrow('Failed to set timer: Invalid timer duration: Timer duration cannot exceed 120 minutes (2 hours)');
       await expect(machineService.setTimer(1, 1.5)).rejects.toThrow('Failed to set timer: Invalid timer duration: Timer duration must be an integer');
     });
 

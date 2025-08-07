@@ -145,7 +145,7 @@ export class TimerSetup {
     // Update input styling and show validation feedback
     if (this.durationInput.value && !isValid) {
       this.durationInput.style.borderColor = '#e74c3c';
-      this.showValidationError('Duration must be between 1 and 300 minutes');
+      this.showValidationError('Duration must be between 1 and 120 minutes');
     } else {
       this.durationInput.style.borderColor = '#ddd';
       this.hideValidationError();
@@ -184,7 +184,7 @@ export class TimerSetup {
    * Check if duration is valid
    */
   private isValidDuration(duration: number): boolean {
-    return !isNaN(duration) && duration >= 1 && duration <= 300;
+    return !isNaN(duration) && duration >= 1 && duration <= 120;
   }
 
   /**
@@ -197,7 +197,7 @@ export class TimerSetup {
 
     // Client-side validation
     if (!this.isValidDuration(duration)) {
-      this.showError('Please enter a valid duration between 1 and 300 minutes.');
+      this.showError('Please enter a valid duration between 1 and 120 minutes.');
       return;
     }
 
@@ -259,7 +259,7 @@ export class TimerSetup {
               errorMessage = errorData.message || 'Machine is in use but override should be allowed';
               break;
             case 'INVALID_DURATION':
-              errorMessage = 'The timer duration is invalid. Please enter a value between 1 and 300 minutes.';
+              errorMessage = 'The timer duration is invalid. Please enter a value between 1 and 120 minutes.';
               break;
             case 'INVALID_MACHINE_ID':
               errorMessage = 'Invalid machine selected. Please go back and try again.';

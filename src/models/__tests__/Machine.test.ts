@@ -169,8 +169,8 @@ describe('Machine', () => {
       expect(() => Machine.validateTimerDuration(0)).toThrow('Timer duration must be at least 1 minute');
     });
 
-    it('should reject duration greater than 300', () => {
-      expect(() => Machine.validateTimerDuration(301)).toThrow('Timer duration cannot exceed 300 minutes');
+    it('should reject duration greater than 120', () => {
+      expect(() => Machine.validateTimerDuration(121)).toThrow('Timer duration cannot exceed 120 minutes');
     });
   });
 

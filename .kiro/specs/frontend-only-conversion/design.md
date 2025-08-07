@@ -139,7 +139,7 @@ const DEFAULT_MACHINES: MachineData[] = [
 - Data corruption: Reset to default machines with user notification
 
 ### Timer Errors
-- Invalid duration: Client-side validation (1-300 minutes)
+- Invalid duration: Client-side validation (1-120 minutes)
 - Timer service failures: Graceful degradation with manual refresh option
 - Cross-tab sync failures: Continue with local state, show sync warning
 

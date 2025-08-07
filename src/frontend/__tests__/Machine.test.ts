@@ -274,7 +274,7 @@ describe('Frontend Machine', () => {
     it('should accept valid duration', () => {
       expect(() => Machine.validateTimerDuration(30)).not.toThrow();
       expect(() => Machine.validateTimerDuration(1)).not.toThrow();
-      expect(() => Machine.validateTimerDuration(300)).not.toThrow();
+      expect(() => Machine.validateTimerDuration(120)).not.toThrow();
     });
 
     it('should reject non-integer duration', () => {
@@ -287,9 +287,9 @@ describe('Frontend Machine', () => {
       expect(() => Machine.validateTimerDuration(-1)).toThrow('Timer duration must be at least 1 minute');
     });
 
-    it('should reject duration greater than 300', () => {
-      expect(() => Machine.validateTimerDuration(301)).toThrow('Timer duration cannot exceed 300 minutes (5 hours)');
-      expect(() => Machine.validateTimerDuration(500)).toThrow('Timer duration cannot exceed 300 minutes (5 hours)');
+    it('should reject duration greater than 120', () => {
+      expect(() => Machine.validateTimerDuration(121)).toThrow('Timer duration cannot exceed 120 minutes (2 hours)');
+      expect(() => Machine.validateTimerDuration(500)).toThrow('Timer duration cannot exceed 120 minutes (2 hours)');
     });
   });
 

@@ -87,12 +87,12 @@ export class MachineController {
         return;
       }
 
-      if (durationMinutes < 1 || durationMinutes > 300) {
-        this.logger.warn('Duration out of valid range', { durationMinutes, validRange: '1-300' });
+      if (durationMinutes < 1 || durationMinutes > 120) {
+        this.logger.warn('Duration out of valid range', { durationMinutes, validRange: '1-120' });
         const errorResponse: ApiErrorResponse = {
           success: false,
           error: 'INVALID_DURATION',
-          message: 'Duration must be between 1 and 300 minutes'
+          message: 'Duration must be between 1 and 120 minutes'
         };
         res.status(400).json(errorResponse);
         return;

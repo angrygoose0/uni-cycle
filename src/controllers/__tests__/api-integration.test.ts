@@ -72,7 +72,7 @@ describe('API Integration Tests', () => {
       expect(response.body).toEqual({
         success: false,
         error: 'INVALID_DURATION',
-        message: 'Duration must be between 1 and 300 minutes'
+        message: 'Duration must be between 1 and 120 minutes'
       });
     });
   });

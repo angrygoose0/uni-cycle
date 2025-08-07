@@ -116,8 +116,8 @@ export class Machine implements MachineData {
       throw new Error('Timer duration must be at least 1 minute');
     }
 
-    if (durationMinutes > 300) {
-      throw new Error('Timer duration cannot exceed 300 minutes (5 hours)');
+    if (durationMinutes > 120) {
+      throw new Error('Timer duration cannot exceed 120 minutes (2 hours)');
     }
   }
 

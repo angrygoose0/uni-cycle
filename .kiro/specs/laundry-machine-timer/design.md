@@ -109,7 +109,7 @@ interface MachineStatus {
 - Transaction failures: Rollback and return error response
 
 ### Timer Errors
-- Invalid duration: Validate input (1-300 minutes)
+- Invalid duration: Validate input (1-120 minutes)
 - Machine already in use: Return conflict status
 - Timer service failures: Log errors and continue operation
 

@@ -223,7 +223,7 @@ describe('MachineService', () => {
     it('should validate timer duration', () => {
       expect(() => machineService.setTimer(1, 0)).toThrow('Invalid timer duration: Timer duration must be at least 1 minute');
       expect(() => machineService.setTimer(1, -1)).toThrow('Invalid timer duration: Timer duration must be at least 1 minute');
-      expect(() => machineService.setTimer(1, 301)).toThrow('Invalid timer duration: Timer duration cannot exceed 300 minutes (5 hours)');
+      expect(() => machineService.setTimer(1, 121)).toThrow('Invalid timer duration: Timer duration cannot exceed 120 minutes (2 hours)');
       expect(() => machineService.setTimer(1, 1.5)).toThrow('Invalid timer duration: Timer duration must be an integer');
     });
 
@@ -398,7 +398,7 @@ describe('MachineService', () => {
     it('should handle timer validation correctly', () => {
       // Test through setTimer method
       expect(() => machineService.setTimer(1, 0)).toThrow('Timer duration must be at least 1 minute');
-      expect(() => machineService.setTimer(1, 301)).toThrow('Timer duration cannot exceed 300 minutes');
+      expect(() => machineService.setTimer(1, 121)).toThrow('Timer duration cannot exceed 120 minutes');
       expect(() => machineService.setTimer(1, 1.5)).toThrow('Timer duration must be an integer');
     });
   });

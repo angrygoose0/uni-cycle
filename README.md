@@ -83,7 +83,7 @@ cp .env.example .env
 | `DATABASE_PATH` | `./data/laundry.db` | SQLite database file path |
 | `DATABASE_TIMEOUT_MS` | `30000` | Database connection timeout |
 | `TIMER_CHECK_INTERVAL_MS` | `30000` | How often to check for expired timers |
-| `MAX_TIMER_DURATION_MINUTES` | `300` | Maximum timer duration (5 hours) |
+| `MAX_TIMER_DURATION_MINUTES` | `120` | Maximum timer duration (2 hours) |
 | `LOG_LEVEL` | `info` | Logging level (error/warn/info/debug) |
 | `SHUTDOWN_TIMEOUT_MS` | `10000` | Graceful shutdown timeout |
 | `CORS_ORIGIN` | `*` | CORS allowed origins |

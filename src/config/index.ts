@@ -46,7 +46,7 @@ function loadConfig(): AppConfig {
     
     // Timer configuration
     timerCheckIntervalMs: parseInt(process.env.TIMER_CHECK_INTERVAL_MS || '30000', 10),
-    maxTimerDurationMinutes: parseInt(process.env.MAX_TIMER_DURATION_MINUTES || '300', 10),
+    maxTimerDurationMinutes: parseInt(process.env.MAX_TIMER_DURATION_MINUTES || '120', 10),
     
     // Logging configuration
     logLevel: process.env.LOG_LEVEL || 'info',
